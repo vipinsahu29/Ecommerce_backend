@@ -22,18 +22,33 @@ class authControllers {
           res.cookie("acessToken", token, {
             expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           });
-          responseReturn(res,200,{token,message:'Login Success'})
+          responseReturn(res, 200, { token, message: "Login Success" });
         } else {
-          responseReturn(res, 400, { "error": "Password incorrect.." });
+          responseReturn(res, 404, { error: "Password Wrong" });
         }
       } else {
-        responseReturn(res, 400, { "error": "Email not found.." });
+        responseReturn(res, 400, { error: "Email not found.." });
       }
-    } catch (err) {
-      responseReturn(res, 500, { error: err.message });
-      console.log(err);
+    } catch (error) {
+      responseReturn(res, 500, { error: error.message });
+      console.log(error, "here");
     }
-  };
+  }; // END method
+  getUser = async (req, res) => {
+    const { id, role } = req;
+    try {
+      if (role === "admin") {
+        const user = await adminModal.findById(id);
+        responseReturn(res, 200, { userInfo: user });
+      }
+      else{
+        console.log('seller Info..')
+      }
+    } catch (error) {
+      console.log(error.message)
+
+    }
+  }; // end getUser
 }
 
 module.exports = new authControllers();
