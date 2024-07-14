@@ -1,7 +1,10 @@
 const adminModal = require("../models/adminModal");
+const sellerModel = require("../models/sellerModel");
+const sellerCustomerModel = require("../models/chat/sellerCustomerModel");
 const { responseReturn } = require("../utiles/response");
 const bcrpty = require("bcrypt");
 const { createToken } = require("../utiles/tokenCreate");
+const { response } = require("express");
 
 class authControllers {
   admin_login = async (req, res) => {
@@ -34,19 +37,51 @@ class authControllers {
       console.log(error, "here");
     }
   }; // END method
+
+  seller_register = async (req, res) => {
+    const { email, name, password } = req.body;
+    console.log(req.body);
+    try {
+      const getUser = await sellerModel.findOne({ email });
+      if (getUser) {
+        responseReturn(res, 404, { error: "Email already exists" });
+      } else {
+        const seller = await sellerModel.create({
+          email,
+          name,
+          password: await bcrpty.hash(password, 10),
+          method: "manually",
+          shopInfo: {},
+        });
+        //console.log("seller", seller);
+        await sellerCustomerModel.create({
+          myId: seller.id,
+        });
+        const token = await createToken({
+          id: seller.id,
+          role: seller.role,
+        });
+        res.cookie("accessToken", token, {
+          expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
+        responseReturn(res, 201, {token, message: "Register sucess" });
+      }
+    } catch (error) {
+      console.log(error)
+      responseReturn(res, 500, { message: "internal server error.." });
+    }
+  }; //end seller register
   getUser = async (req, res) => {
     const { id, role } = req;
     try {
       if (role === "admin") {
         const user = await adminModal.findById(id);
         responseReturn(res, 200, { userInfo: user });
-      }
-      else{
-        console.log('seller Info..')
+      } else {
+        console.log("seller Info..");
       }
     } catch (error) {
-      console.log(error.message)
-
+      console.log(error.message);
     }
   }; // end getUser
 }
