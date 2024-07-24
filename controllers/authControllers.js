@@ -4,25 +4,22 @@ const sellerCustomerModel = require("../models/chat/sellerCustomerModel");
 const { responseReturn } = require("../utiles/response");
 const bcrpty = require("bcrypt");
 const { createToken } = require("../utiles/tokenCreate");
-const { response } = require("express");
 
 class authControllers {
   admin_login = async (req, res) => {
-    //console.log(req.body)//in the body we will get all values from api
-    //in this case we will get email and password value
-
     const { email, password } = req.body;
     try {
       const admin = await adminModal.findOne({ email }).select("+password");
+      // console.log(admin)
       if (admin) {
         const match = await bcrpty.compare(password, admin.password);
-        // console.log(`pswd matched ${match}`);
+        // console.log(match)
         if (match) {
           const token = await createToken({
             id: admin.id,
             role: admin.role,
           });
-          res.cookie("acessToken", token, {
+          res.cookie("accessToken", token, {
             expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           });
           responseReturn(res, 200, { token, message: "Login Success" });
@@ -30,80 +27,77 @@ class authControllers {
           responseReturn(res, 404, { error: "Password Wrong" });
         }
       } else {
-        responseReturn(res, 400, { error: "Email not found.." });
+        responseReturn(res, 404, { error: "Email not Found" });
       }
     } catch (error) {
       responseReturn(res, 500, { error: error.message });
-      console.log(error, "here");
     }
-  }; // END method
-  seller_login = async(req,res) => {
-    const {email,password} = req.body
+  };
+  // End Method
+
+  seller_login = async (req, res) => {
+    const { email, password } = req.body;
     try {
-        const seller = await sellerModel.findOne({email}).select('+password')
-        // console.log(admin)
-        if (seller) {
-            const match = await bcrpty.compare(password, seller.password)
-            // console.log(match)
-            if (match) {
-                const token = await createToken({
-                    id : seller.id,
-                    role : seller.role
-                })
-                res.cookie('accessToken',token,{
-                    expires : new Date(Date.now() + 7*24*60*60*1000 )
-                }) 
-                responseReturn(res,200,{token,message: "Login Success"})
-            } else {
-                responseReturn(res,404,{error: "Password Wrong"})
-            }
-
-
+      const seller = await sellerModel.findOne({ email }).select("+password");
+      // console.log(admin)
+      if (seller) {
+        const match = await bcrpty.compare(password, seller.password);
+        // console.log(match)
+        if (match) {
+          const token = await createToken({
+            id: seller.id,
+            role: seller.role,
+          });
+          res.cookie("accessToken", token, {
+            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          });
+          responseReturn(res, 200, { token, message: "Login Success" });
         } else {
-            responseReturn(res,404,{error: "Email not Found"})
+          responseReturn(res, 404, { error: "Password Wrong" });
         }
-
+      } else {
+        responseReturn(res, 404, { error: "Email not Found" });
+      }
     } catch (error) {
-        responseReturn(res,500,{error: error.message})
+      responseReturn(res, 500, { error: error.message });
     }
+  };
+  // End Method
 
-}
-// End Method
   seller_register = async (req, res) => {
     const { email, name, password } = req.body;
-    console.log(req.body);
     try {
       const getUser = await sellerModel.findOne({ email });
       if (getUser) {
-        responseReturn(res, 404, { error: "Email already exists" });
+        responseReturn(res, 404, { error: "Email Already Exit" });
       } else {
         const seller = await sellerModel.create({
-          email,
           name,
+          email,
           password: await bcrpty.hash(password, 10),
-          method: "manually",
+          method: "menualy",
           shopInfo: {},
         });
-        //console.log("seller", seller);
         await sellerCustomerModel.create({
           myId: seller.id,
         });
-        const token = await createToken({
-          id: seller.id,
-          role: seller.role,
-        });
+
+        const token = await createToken({ id: seller.id, role: seller.role });
         res.cookie("accessToken", token, {
           expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         });
-        responseReturn(res, 201, {token, message: "Register sucess" });
+
+        responseReturn(res, 201, { token, message: "Register Success" });
       }
     } catch (error) {
-      console.log(error)
-      responseReturn(res, 500, { message: "internal server error.." });
+      responseReturn(res, 500, { error: "Internal Server Error" });
     }
-  }; //end seller register
+  };
+  // End Method
+
   getUser = async (req, res) => {
     const { id, role } = req;
+
     try {
       if (role === "admin") {
         const user = await adminModal.findById(id);
@@ -113,9 +107,9 @@ class authControllers {
         responseReturn(res, 200, { userInfo: seller });
       }
     } catch (error) {
-      console.log(error.message);
+      responseReturn(res, 500, { error: "Internal Server Error" });
     }
-  }; // end getUser
+  }; // End getUser Method
 }
 
 module.exports = new authControllers();
